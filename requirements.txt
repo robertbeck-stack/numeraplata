@@ -1,0 +1,3 @@
+fast-alpr[onnx]
+opencv-python
+numpy
