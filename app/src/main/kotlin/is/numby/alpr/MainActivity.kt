@@ -213,31 +213,31 @@ fun IcelandicPlateBadge(plate: String, modifier: Modifier = Modifier) {
   } else plate
 
   Surface(
-    modifier = modifier.width(124.dp),
+    modifier = modifier.width(118.dp),
     shape = RoundedCornerShape(5.dp),
     color = Color(0xFFF8FAFC),
     border = BorderStroke(1.5.dp, Color(0xFF1E293B)),
-    shadowElevation = 2.dp
+    shadowElevation = 1.dp
   ) {
     Row(
       verticalAlignment = Alignment.CenterVertically,
-      modifier = Modifier.padding(start = 4.dp, end = 6.dp, top = 3.dp, bottom = 3.dp)
+      modifier = Modifier.padding(start = 3.5.dp, end = 5.dp, top = 2.dp, bottom = 2.dp)
     ) {
       Surface(
         color = Color(0xFF0051B4),
         shape = RoundedCornerShape(2.dp),
-        modifier = Modifier.padding(end = 6.dp)
+        modifier = Modifier.padding(end = 5.dp)
       ) {
         Column(
           horizontalAlignment = Alignment.CenterHorizontally,
-          modifier = Modifier.padding(horizontal = 3.dp, vertical = 2.dp)
+          modifier = Modifier.padding(horizontal = 2.5.dp, vertical = 1.5.dp)
         ) {
           Text(
             text = "IS",
             color = Color.White,
             fontWeight = FontWeight.Black,
-            fontSize = 9.sp,
-            lineHeight = 10.sp
+            fontSize = 8.sp,
+            lineHeight = 9.sp
           )
         }
       }
@@ -245,7 +245,7 @@ fun IcelandicPlateBadge(plate: String, modifier: Modifier = Modifier) {
         text = formatted,
         color = Color(0xFF0F172A),
         fontWeight = FontWeight.ExtraBold,
-        fontSize = 15.sp,
+        fontSize = 14.sp,
         letterSpacing = 1.sp,
         textAlign = TextAlign.Center,
         maxLines = 1,
@@ -312,7 +312,7 @@ fun PlateScannerScreen(logFile: File) {
 
   Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
     if (hasCamPerm) {
-      Box(modifier = Modifier.fillMaxWidth().height(280.dp).clipToBounds()) {
+      Box(modifier = Modifier.fillMaxWidth().height(245.dp).clipToBounds()) {
         AndroidView(
           modifier = Modifier.fillMaxSize(),
           factory = { ctx ->
@@ -658,7 +658,7 @@ fun PlateScannerScreen(logFile: File) {
       Text("Vantar leyfi fyrir myndavél", modifier = Modifier.padding(16.dp))
     }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp)) {
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -666,11 +666,11 @@ fun PlateScannerScreen(logFile: File) {
       ) {
         Text(
           "Skráð atvik",
-          fontWeight = FontWeight.ExtraBold,
-          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.Bold,
+          fontSize = 17.sp,
           color = Color.White
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
           OutlinedButton(
             enabled = logs.isNotEmpty(),
             onClick = {
@@ -682,9 +682,10 @@ fun PlateScannerScreen(logFile: File) {
             ),
             border = BorderStroke(1.dp, Color(0xFFF43F5E).copy(alpha = 0.5f)),
             shape = RoundedCornerShape(8.dp),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+            modifier = Modifier.height(32.dp)
           ) {
-            Text("Hreinsa", maxLines = 1, fontSize = 12.sp)
+            Text("Hreinsa", maxLines = 1, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
           }
           Button(
             enabled = logs.isNotEmpty(),
@@ -707,18 +708,19 @@ fun PlateScannerScreen(logFile: File) {
               contentColor = Color(0xFF050811)
             ),
             shape = RoundedCornerShape(8.dp),
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+            modifier = Modifier.height(32.dp)
           ) {
-            Text("Deila CSV", fontWeight = FontWeight.Bold, maxLines = 1, fontSize = 12.sp)
+            Text("Deila CSV", fontWeight = FontWeight.Bold, maxLines = 1, fontSize = 11.sp)
           }
         }
       }
       Spacer(modifier = Modifier.height(4.dp))
-      Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+      Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         FilterChip(
           selected = showBoxes,
           onClick = { showBoxes = !showBoxes },
-          label = { Text("Rammi", fontSize = 12.sp) },
+          label = { Text("Rammi", fontSize = 11.sp) },
           colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = Color(0xFF00E5FF).copy(alpha = 0.2f),
             selectedLabelColor = Color(0xFF00E5FF)
@@ -728,12 +730,13 @@ fun PlateScannerScreen(logFile: File) {
             selected = showBoxes,
             borderColor = if (showBoxes) Color(0xFF00E5FF) else Color(0xFF1E293B),
             selectedBorderColor = Color(0xFF00E5FF)
-          )
+          ),
+          modifier = Modifier.height(28.dp)
         )
         FilterChip(
           selected = debugShots,
           onClick = { debugShots = !debugShots },
-          label = { Text("Skjáskot", fontSize = 12.sp) },
+          label = { Text("Skjáskot", fontSize = 11.sp) },
           colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = Color(0xFF00E5FF).copy(alpha = 0.2f),
             selectedLabelColor = Color(0xFF00E5FF)
@@ -743,12 +746,13 @@ fun PlateScannerScreen(logFile: File) {
             selected = debugShots,
             borderColor = if (debugShots) Color(0xFF00E5FF) else Color(0xFF1E293B),
             selectedBorderColor = Color(0xFF00E5FF)
-          )
+          ),
+          modifier = Modifier.height(28.dp)
         )
         FilterChip(
           selected = !newestFirst,
           onClick = { newestFirst = !newestFirst },
-          label = { Text(if (newestFirst) "Nýjast efst" else "Elst efst", fontSize = 12.sp) },
+          label = { Text(if (newestFirst) "Nýjast efst" else "Elst efst", fontSize = 11.sp) },
           colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = Color(0xFF00E5FF).copy(alpha = 0.2f),
             selectedLabelColor = Color(0xFF00E5FF)
@@ -758,7 +762,8 @@ fun PlateScannerScreen(logFile: File) {
             selected = !newestFirst,
             borderColor = if (!newestFirst) Color(0xFF00E5FF) else Color(0xFF1E293B),
             selectedBorderColor = Color(0xFF00E5FF)
-          )
+          ),
+          modifier = Modifier.height(28.dp)
         )
       }
     }
@@ -767,20 +772,25 @@ fun PlateScannerScreen(logFile: File) {
     LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
       groupedByDay.forEach { (dayStr, dayEntries) ->
         item(key = "day_$dayStr") {
-          Surface(
-            color = Color(0xFF0D1322),
-            shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(1.dp, Color(0xFF1E293B)),
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
           ) {
-            Row(
-              modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
-              horizontalArrangement = Arrangement.SpaceBetween,
-              verticalAlignment = Alignment.CenterVertically
-            ) {
-              Text(formatDayHeader(dayStr), fontWeight = FontWeight.Bold, color = Color(0xFF00E5FF), style = MaterialTheme.typography.bodyMedium)
-              Text("${dayEntries.size} bílar", color = Color(0xFF64748B), style = MaterialTheme.typography.bodySmall)
-            }
+            Text(
+              formatDayHeader(dayStr).uppercase(),
+              fontWeight = FontWeight.Bold,
+              fontSize = 11.sp,
+              letterSpacing = 1.sp,
+              color = Color(0xFF00E5FF)
+            )
+            Text(
+              "${dayEntries.size} bílar",
+              fontSize = 11.sp,
+              color = Color(0xFF64748B)
+            )
           }
         }
         items(dayEntries) { entry ->
@@ -788,24 +798,24 @@ fun PlateScannerScreen(logFile: File) {
           Card(
             modifier = Modifier
               .fillMaxWidth()
-              .padding(vertical = 3.dp)
+              .padding(vertical = 2.dp)
               .clickable { selectedEntry = entry },
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(10.dp),
             colors = CardDefaults.cardColors(
               containerColor = Color(0xFF0D1322)
             ),
-            border = BorderStroke(1.dp, Color(0xFF1E293B))
+            border = BorderStroke(1.dp, Color(0xFF1A2333))
           ) {
             Row(
               modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 7.dp),
               horizontalArrangement = Arrangement.SpaceBetween,
               verticalAlignment = Alignment.CenterVertically
             ) {
               Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
               ) {
                 IcelandicPlateBadge(entry.plate)
                 val pct = (entry.confidence * 100).toInt()
@@ -813,22 +823,22 @@ fun PlateScannerScreen(logFile: File) {
                 Surface(
                   color = badgeColor.copy(alpha = 0.12f),
                   shape = RoundedCornerShape(4.dp),
-                  border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f))
+                  border = BorderStroke(0.5.dp, badgeColor.copy(alpha = 0.6f))
                 ) {
                   Text(
                     text = "$pct%",
                     color = badgeColor,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     softWrap = false,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                   )
                 }
               }
               Text(
                 text = timeNoSec,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF94A3B8),
                 maxLines = 1,
