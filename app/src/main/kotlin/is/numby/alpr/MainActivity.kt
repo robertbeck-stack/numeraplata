@@ -213,7 +213,7 @@ fun IcelandicPlateBadge(plate: String, modifier: Modifier = Modifier) {
   } else plate
 
   Surface(
-    modifier = modifier.width(106.dp),
+    modifier = modifier.width(124.dp),
     shape = RoundedCornerShape(5.dp),
     color = Color(0xFFF8FAFC),
     border = BorderStroke(1.5.dp, Color(0xFF1E293B)),
@@ -221,12 +221,12 @@ fun IcelandicPlateBadge(plate: String, modifier: Modifier = Modifier) {
   ) {
     Row(
       verticalAlignment = Alignment.CenterVertically,
-      modifier = Modifier.padding(start = 3.dp, end = 4.dp, top = 2.dp, bottom = 2.dp)
+      modifier = Modifier.padding(start = 4.dp, end = 6.dp, top = 3.dp, bottom = 3.dp)
     ) {
       Surface(
         color = Color(0xFF0051B4),
         shape = RoundedCornerShape(2.dp),
-        modifier = Modifier.padding(end = 4.dp)
+        modifier = Modifier.padding(end = 6.dp)
       ) {
         Column(
           horizontalAlignment = Alignment.CenterHorizontally,
@@ -248,7 +248,9 @@ fun IcelandicPlateBadge(plate: String, modifier: Modifier = Modifier) {
         fontSize = 15.sp,
         letterSpacing = 1.sp,
         textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth()
+        maxLines = 1,
+        softWrap = false,
+        modifier = Modifier.weight(1f)
       )
     }
   }
@@ -797,13 +799,13 @@ fun PlateScannerScreen(logFile: File) {
             Row(
               modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
               horizontalArrangement = Arrangement.SpaceBetween,
               verticalAlignment = Alignment.CenterVertically
             ) {
               Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
               ) {
                 IcelandicPlateBadge(entry.plate)
                 val pct = (entry.confidence * 100).toInt()
@@ -811,45 +813,27 @@ fun PlateScannerScreen(logFile: File) {
                 Surface(
                   color = badgeColor.copy(alpha = 0.12f),
                   shape = RoundedCornerShape(4.dp),
-                  border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f)),
-                  modifier = Modifier.width(44.dp)
+                  border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f))
                 ) {
                   Text(
                     text = "$pct%",
                     color = badgeColor,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                   )
                 }
-                Text(
-                  text = timeNoSec,
-                  fontSize = 13.sp,
-                  fontWeight = FontWeight.Medium,
-                  color = Color(0xFF94A3B8),
-                  textAlign = TextAlign.Center,
-                  modifier = Modifier.width(42.dp)
-                )
               }
-              if (entry.imgPath != null && File(entry.imgPath).exists()) {
-                val bmp = remember(entry.imgPath) { loadSampledBitmap(entry.imgPath, 160, 90) }
-                if (bmp != null) {
-                  Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    border = BorderStroke(1.dp, Color(0xFF334155))
-                  ) {
-                    Image(
-                      bitmap = bmp.asImageBitmap(),
-                      contentDescription = entry.plate,
-                      modifier = Modifier
-                        .height(44.dp)
-                        .width(76.dp),
-                      contentScale = ContentScale.Crop
-                    )
-                  }
-                }
-              }
+              Text(
+                text = timeNoSec,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF94A3B8),
+                maxLines = 1,
+                softWrap = false
+              )
             }
           }
         }
