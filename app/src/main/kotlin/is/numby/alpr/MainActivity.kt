@@ -243,6 +243,7 @@ fun PlateScannerScreen(logFile: File) {
               scaleType = PreviewView.ScaleType.FILL_CENTER
             }
             val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+            val yoloDetector = YoloPlateDetector(ctx)
             val executor = Executors.newSingleThreadExecutor()
             val saveExecutor = Executors.newSingleThreadExecutor()
             val resSelector = ResolutionSelector.Builder()
@@ -284,83 +285,175 @@ fun PlateScannerScreen(logFile: File) {
                     val cropY = ((rotated.height - cropH) / 2).coerceAtLeast(0)
                     val visibleBmp = Bitmap.createBitmap(rotated, cropX, cropY, cropW, cropH)
 
-                    val img = InputImage.fromBitmap(visibleBmp, 0)
-                    recognizer.process(img)
-                      .addOnSuccessListener { visionText ->
-                        val boxes = mutableListOf<Rect>()
-                        val now = System.currentTimeMillis()
-                        for (block in visionText.textBlocks) {
-                          for (line in block.lines) {
-                            val maxH = line.elements.maxOfOrNull { it.boundingBox?.height() ?: 0 } ?: 0
-                            val tallElems = line.elements.filter { (it.boundingBox?.height() ?: maxH) >= maxH * 0.6 }
-                            val tallText = tallElems.joinToString("") { it.text }
-                            val tallPlate = extractPlate(tallText)
-                            val plate = tallPlate ?: extractPlate(line.text)
-                            val usedElems = if (tallPlate != null) tallElems else line.elements
-                            val conf = usedElems.mapNotNull { it.confidence }.average().toFloat().takeIf { !it.isNaN() }
-                              ?: line.confidence ?: 0.5f
-                            if (plate != null && conf >= 0.45f) {
-                              val rawBox = (if (tallPlate != null) {
-                                tallElems.mapNotNull { it.boundingBox }.reduceOrNull { acc, r -> Rect(acc).apply { union(r) } }
-                              } else null) ?: line.boundingBox
-                              // Pad box slightly so it frames the physical plate instead of slicing through edge letters
-                              val box = rawBox?.let {
-                                val padX = (it.width() * 0.08f).toInt().coerceAtLeast(6)
-                                val padY = (it.height() * 0.18f).toInt().coerceAtLeast(6)
-                                Rect(
-                                  (it.left - padX).coerceAtLeast(0),
-                                  (it.top - padY).coerceAtLeast(0),
-                                  (it.right + padX).coerceAtMost(cropW),
-                                  (it.bottom + padY).coerceAtMost(cropH)
-                                )
-                              }
-                              box?.let { boxes.add(it) }
+                    val yoloDetections = yoloDetector.detect(visibleBmp, confThreshold = 0.35f)
 
-                              // Same passing event if seen within the last 25 seconds
-                              val fullBox = box?.let { Rect(it.left + cropX, it.top + cropY, it.right + cropX, it.bottom + cropY) }
-                              val matchIdx = logs.indexOfFirst {
-                                now - it.timestampMs < 25_000L && (it.plate == plate || isSameCar(it.plate, plate))
-                              }
-                              if (matchIdx == -1) {
-                                val ts = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(now))
-                                val entry = ScanEntry(ts, plate, conf, null, now)
-                                logs.add(0, entry)
-                                rewriteCsv()
-                                if (debugShots) {
-                                  val capturedBmp = rotated.copy(Bitmap.Config.ARGB_8888, false)
-                                  saveExecutor.execute {
-                                    val shotPath = saveDebugShot(ctx, capturedBmp, fullBox, plate, ts)
-                                    val idx = logs.indexOfFirst { it.time == ts && it.plate == plate }
-                                    if (idx != -1) {
-                                      logs[idx] = logs[idx].copy(imgPath = shotPath)
+                    if (yoloDetections.isNotEmpty()) {
+                      val boxes = mutableListOf<Rect>()
+                      val now = System.currentTimeMillis()
+                      var pendingTasks = yoloDetections.size
+
+                      for (det in yoloDetections) {
+                        val dBox = det.box
+                        val padX = (dBox.width() * 0.10f).toInt().coerceAtLeast(4)
+                        val padY = (dBox.height() * 0.20f).toInt().coerceAtLeast(4)
+                        val cLeft = (dBox.left - padX).coerceAtLeast(0)
+                        val cTop = (dBox.top - padY).coerceAtLeast(0)
+                        val cRight = (dBox.right + padX).coerceAtMost(cropW)
+                        val cBottom = (dBox.bottom + padY).coerceAtMost(cropH)
+                        val cW = cRight - cLeft
+                        val cH = cBottom - cTop
+
+                        if (cW > 10 && cH > 10) {
+                          val plateCrop = Bitmap.createBitmap(visibleBmp, cLeft, cTop, cW, cH)
+                          val cropInput = InputImage.fromBitmap(plateCrop, 0)
+
+                          recognizer.process(cropInput)
+                            .addOnSuccessListener { visionText ->
+                              for (block in visionText.textBlocks) {
+                                for (line in block.lines) {
+                                  val maxH = line.elements.maxOfOrNull { it.boundingBox?.height() ?: 0 } ?: 0
+                                  val tallElems = line.elements.filter { (it.boundingBox?.height() ?: maxH) >= maxH * 0.6 }
+                                  val tallText = tallElems.joinToString("") { it.text }
+                                  val plate = extractPlate(tallText) ?: extractPlate(line.text)
+
+                                  if (plate != null) {
+                                    boxes.add(dBox)
+                                    val conf = det.confidence
+                                    val fullBox = Rect(dBox.left + cropX, dBox.top + cropY, dBox.right + cropX, dBox.bottom + cropY)
+
+                                    val matchIdx = logs.indexOfFirst {
+                                      now - it.timestampMs < 25_000L && (it.plate == plate || isSameCar(it.plate, plate))
+                                    }
+                                    if (matchIdx == -1) {
+                                      val ts = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(now))
+                                      val entry = ScanEntry(ts, plate, conf, null, now)
+                                      logs.add(0, entry)
                                       rewriteCsv()
+                                      if (debugShots) {
+                                        val capturedBmp = rotated.copy(Bitmap.Config.ARGB_8888, false)
+                                        saveExecutor.execute {
+                                          val shotPath = saveDebugShot(ctx, capturedBmp, fullBox, plate, ts)
+                                          val idx = logs.indexOfFirst { it.time == ts && it.plate == plate }
+                                          if (idx != -1) {
+                                            logs[idx] = logs[idx].copy(imgPath = shotPath)
+                                            rewriteCsv()
+                                          }
+                                        }
+                                      }
+                                    } else if (conf > logs[matchIdx].confidence && logs[matchIdx].plate != plate) {
+                                      val old = logs[matchIdx]
+                                      logs[matchIdx] = old.copy(plate = plate, confidence = conf, timestampMs = now)
+                                      rewriteCsv()
+                                      if (debugShots) {
+                                        val capturedBmp = rotated.copy(Bitmap.Config.ARGB_8888, false)
+                                        saveExecutor.execute {
+                                          val shotPath = saveDebugShot(ctx, capturedBmp, fullBox, plate, old.time)
+                                          val idx = logs.indexOfFirst { it.time == old.time && it.plate == plate }
+                                          if (idx != -1) {
+                                            logs[idx] = logs[idx].copy(imgPath = shotPath)
+                                            rewriteCsv()
+                                          }
+                                        }
+                                      }
                                     }
                                   }
                                 }
-                              } else if (conf > logs[matchIdx].confidence && logs[matchIdx].plate != plate) {
-                                // Upgrade blurry initial read (e.g. VSO07) to sharper read (VSD07) in-place
-                                val old = logs[matchIdx]
-                                logs[matchIdx] = old.copy(plate = plate, confidence = conf, timestampMs = now)
-                                rewriteCsv()
-                                if (debugShots) {
-                                  val capturedBmp = rotated.copy(Bitmap.Config.ARGB_8888, false)
-                                  saveExecutor.execute {
-                                    val shotPath = saveDebugShot(ctx, capturedBmp, fullBox, plate, old.time)
-                                    val idx = logs.indexOfFirst { it.time == old.time && it.plate == plate }
-                                    if (idx != -1) {
-                                      logs[idx] = logs[idx].copy(imgPath = shotPath)
-                                      rewriteCsv()
+                              }
+                            }
+                            .addOnCompleteListener {
+                              pendingTasks--
+                              if (pendingTasks <= 0) {
+                                frameSize = cropW to cropH
+                                detectedBoxes = boxes
+                                proxy.close()
+                              }
+                            }
+                        } else {
+                          pendingTasks--
+                          if (pendingTasks <= 0) {
+                            frameSize = cropW to cropH
+                            detectedBoxes = boxes
+                            proxy.close()
+                          }
+                        }
+                      }
+                    } else {
+                      // Fallback: full frame ML Kit OCR if YOLO didn't detect bounding box
+                      val img = InputImage.fromBitmap(visibleBmp, 0)
+                      recognizer.process(img)
+                        .addOnSuccessListener { visionText ->
+                          val boxes = mutableListOf<Rect>()
+                          val now = System.currentTimeMillis()
+                          for (block in visionText.textBlocks) {
+                            for (line in block.lines) {
+                              val maxH = line.elements.maxOfOrNull { it.boundingBox?.height() ?: 0 } ?: 0
+                              val tallElems = line.elements.filter { (it.boundingBox?.height() ?: maxH) >= maxH * 0.6 }
+                              val tallText = tallElems.joinToString("") { it.text }
+                              val tallPlate = extractPlate(tallText)
+                              val plate = tallPlate ?: extractPlate(line.text)
+                              val usedElems = if (tallPlate != null) tallElems else line.elements
+                              val conf = usedElems.mapNotNull { it.confidence }.average().toFloat().takeIf { !it.isNaN() }
+                                ?: line.confidence ?: 0.5f
+                              if (plate != null && conf >= 0.45f) {
+                                val rawBox = (if (tallPlate != null) {
+                                  tallElems.mapNotNull { it.boundingBox }.reduceOrNull { acc, r -> Rect(acc).apply { union(r) } }
+                                } else null) ?: line.boundingBox
+                                val box = rawBox?.let {
+                                  val padX = (it.width() * 0.08f).toInt().coerceAtLeast(6)
+                                  val padY = (it.height() * 0.18f).toInt().coerceAtLeast(6)
+                                  Rect(
+                                    (it.left - padX).coerceAtLeast(0),
+                                    (it.top - padY).coerceAtLeast(0),
+                                    (it.right + padX).coerceAtMost(cropW),
+                                    (it.bottom + padY).coerceAtMost(cropH)
+                                  )
+                                }
+                                box?.let { boxes.add(it) }
+
+                                val fullBox = box?.let { Rect(it.left + cropX, it.top + cropY, it.right + cropX, it.bottom + cropY) }
+                                val matchIdx = logs.indexOfFirst {
+                                  now - it.timestampMs < 25_000L && (it.plate == plate || isSameCar(it.plate, plate))
+                                }
+                                if (matchIdx == -1) {
+                                  val ts = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(now))
+                                  val entry = ScanEntry(ts, plate, conf, null, now)
+                                  logs.add(0, entry)
+                                  rewriteCsv()
+                                  if (debugShots) {
+                                    val capturedBmp = rotated.copy(Bitmap.Config.ARGB_8888, false)
+                                    saveExecutor.execute {
+                                      val shotPath = saveDebugShot(ctx, capturedBmp, fullBox, plate, ts)
+                                      val idx = logs.indexOfFirst { it.time == ts && it.plate == plate }
+                                      if (idx != -1) {
+                                        logs[idx] = logs[idx].copy(imgPath = shotPath)
+                                        rewriteCsv()
+                                      }
+                                    }
+                                  }
+                                } else if (conf > logs[matchIdx].confidence && logs[matchIdx].plate != plate) {
+                                  val old = logs[matchIdx]
+                                  logs[matchIdx] = old.copy(plate = plate, confidence = conf, timestampMs = now)
+                                  rewriteCsv()
+                                  if (debugShots) {
+                                    val capturedBmp = rotated.copy(Bitmap.Config.ARGB_8888, false)
+                                    saveExecutor.execute {
+                                      val shotPath = saveDebugShot(ctx, capturedBmp, fullBox, plate, old.time)
+                                      val idx = logs.indexOfFirst { it.time == old.time && it.plate == plate }
+                                      if (idx != -1) {
+                                        logs[idx] = logs[idx].copy(imgPath = shotPath)
+                                        rewriteCsv()
+                                      }
                                     }
                                   }
                                 }
                               }
                             }
                           }
+                          frameSize = cropW to cropH
+                          detectedBoxes = boxes
                         }
-                        frameSize = cropW to cropH
-                        detectedBoxes = boxes
-                      }
-                      .addOnCompleteListener { proxy.close() }
+                        .addOnCompleteListener { proxy.close() }
+                    }
                   }
                 }
               provider.unbindAll()
