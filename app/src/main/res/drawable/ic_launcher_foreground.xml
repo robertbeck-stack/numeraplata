@@ -1,30 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M31,63.928c0,0 6.4,-11 12.1,-13.1c7.2,-2.6 26,-1.4 26,-1.4l38.1,38.1L107,108.928l-32,-1L31,63.928z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:endX="85.84757"
-                android:endY="92.4963"
-                android:startX="42.9492"
-                android:startY="49.59793"
-                android:type="linear">
-                <item
-                    android:color="#44000000"
-                    android:offset="0.0" />
-                <item
-                    android:color="#00000000"
-                    android:offset="1.0" />
-            </gradient>
-        </aapt:attr>
-    </path>
+
+    <!-- Viewfinder / Scanner corners (Neon Green) -->
+    <!-- Top-Left -->
     <path
-        android:fillColor="#FFFFFF"
-        android:fillType="nonZero"
-        android:pathData="M65.3,45.828l3.8,-6.6c0.2,-0.4 0.1,-0.9 -0.3,-1.1c-0.4,-0.2 -0.9,-0.1 -1.1,0.3l-3.9,6.7c-6.3,-2.8 -13.4,-2.8 -19.7,0l-3.9,-6.7c-0.2,-0.4 -0.7,-0.5 -1.1,-0.3C38.8,38.328 38.7,38.828 38.9,39.228l3.8,6.6C36.2,49.428 31.7,56.028 31,63.928h46C76.3,56.028 71.8,49.428 65.3,45.828zM43.4,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2c-0.3,-0.7 -0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C45.3,56.528 44.5,57.328 43.4,57.328L43.4,57.328zM64.6,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2s-0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C66.5,56.528 65.6,57.328 64.6,57.328L64.6,57.328z"
-        android:strokeWidth="1"
-        android:strokeColor="#00000000" />
+        android:strokeColor="#22C55E"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M23,37 L23,28 A4,4 0 0,1 27,24 L36,24" />
+    <!-- Top-Right -->
+    <path
+        android:strokeColor="#22C55E"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M72,24 L81,24 A4,4 0 0,1 85,28 L85,37" />
+    <!-- Bottom-Left -->
+    <path
+        android:strokeColor="#22C55E"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M23,71 L23,80 A4,4 0 0,0 27,84 L36,84" />
+    <!-- Bottom-Right -->
+    <path
+        android:strokeColor="#22C55E"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M72,84 L81,84 A4,4 0 0,0 85,80 L85,71" />
+
+    <!-- License Plate Base Plate (White with rounded corners) -->
+    <path
+        android:fillColor="#F8FAFC"
+        android:strokeColor="#CBD5E1"
+        android:strokeWidth="1.5"
+        android:pathData="M31,40 L77,40 A4,4 0 0,1 81,44 L81,64 A4,4 0 0,1 77,68 L31,68 A4,4 0 0,1 27,64 L27,44 A4,4 0 0,1 31,40 Z" />
+
+    <!-- Blue Euro / IS band on the left -->
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M31,40 L37,40 L37,68 L31,68 A4,4 0 0,1 27,64 L27,44 A4,4 0 0,1 31,40 Z" />
+
+    <!-- 'IS' Text Representation (White tick/bars on blue strip) -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.2"
+        android:pathData="M30,50 L34,50 M32,50 L32,58 M30,58 L34,58" />
+
+    <!-- Icelandic Plate Letter 'A' (Dark navy/blue-gray) -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M42.5,47 L45.5,47 L48.5,61 L46,61 L45.2,57.5 L42.8,57.5 L42,61 L39.5,61 Z M44,50.5 L43.2,55 L44.8,55 Z" />
+
+    <!-- Red Inspection Sticker in the middle -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M51.5,49.5 H56.5 V58.5 H51.5 Z" />
+
+    <!-- Icelandic Plate Digits '46' (Stylized) -->
+    <!-- Digit '4' -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M63,47 H65.2 V56 H67 V58.2 H65.2 V61 H62.8 V58.2 H59 V56 Z M61.4,56 H62.8 V51.5 Z" />
+    <!-- Digit '6' -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M71.5,47 H76 V49.2 H72.5 L71.8,53 C72.4,52.4 73.2,52 74.2,52 C75.8,52 77,53.3 77,55.5 C77,58.8 75.3,61 73.2,61 C70.8,61 69.5,58.5 69.5,54.5 Z M72.2,55.2 C72,56.5 72.5,58.8 73.5,58.8 C74.2,58.8 74.8,57.8 74.8,55.8 C74.8,54.2 74.2,53.8 73.5,53.8 C72.8,53.8 72.3,54.4 72.2,55.2 Z" />
+
 </vector>
