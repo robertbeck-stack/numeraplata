@@ -108,6 +108,22 @@ data class ScanEntry(
   val timestampMs: Long = System.currentTimeMillis()
 )
 
+private fun loadSampledBitmap(path: String, reqW: Int, reqH: Int): Bitmap? {
+  val file = File(path)
+  if (!file.exists()) return null
+  val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+  BitmapFactory.decodeFile(path, opts)
+  var sample = 1
+  if (opts.outHeight > reqH || opts.outWidth > reqW) {
+    val halfH = opts.outHeight / 2
+    val halfW = opts.outWidth / 2
+    while ((halfH / sample) >= reqH && (halfW / sample) >= reqW) {
+      sample *= 2
+    }
+  }
+  return BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sample })
+}
+
 private fun saveDebugShot(context: Context, bmp: Bitmap, box: Rect?, plate: String, ts: String): String {
   val copy = bmp.copy(Bitmap.Config.ARGB_8888, true)
   val canvas = android.graphics.Canvas(copy)
@@ -144,20 +160,14 @@ private fun shareEntry(context: Context, entry: ScanEntry) {
     putExtra(Intent.EXTRA_SUBJECT, entry.plate)
     putExtra(Intent.EXTRA_TEXT, text)
     if (file != null) {
-      val values = ContentValues().apply {
-        put(MediaStore.Images.Media.DISPLAY_NAME, file.name)
-        put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-        put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Numby")
-      }
-      val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-      if (uri != null) {
-        context.contentResolver.openOutputStream(uri)?.use { out -> file.inputStream().use { it.copyTo(out) } }
-        type = "image/jpeg"
-        putExtra(Intent.EXTRA_STREAM, uri)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-      } else {
-        type = "text/plain"
-      }
+      val uri = androidx.core.content.FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        file
+      )
+      type = "image/jpeg"
+      putExtra(Intent.EXTRA_STREAM, uri)
+      addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     } else {
       type = "text/plain"
     }
@@ -234,6 +244,7 @@ fun PlateScannerScreen(logFile: File) {
             }
             val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
             val executor = Executors.newSingleThreadExecutor()
+            val saveExecutor = Executors.newSingleThreadExecutor()
             val resSelector = ResolutionSelector.Builder()
               .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
               .setResolutionStrategy(
@@ -312,15 +323,36 @@ fun PlateScannerScreen(logFile: File) {
                               }
                               if (matchIdx == -1) {
                                 val ts = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(now))
-                                val shotPath = if (debugShots) saveDebugShot(ctx, rotated, fullBox, plate, ts) else ""
-                                logs.add(0, ScanEntry(ts, plate, conf, shotPath.ifEmpty { null }, now))
+                                val entry = ScanEntry(ts, plate, conf, null, now)
+                                logs.add(0, entry)
                                 rewriteCsv()
+                                if (debugShots) {
+                                  val capturedBmp = rotated.copy(Bitmap.Config.ARGB_8888, false)
+                                  saveExecutor.execute {
+                                    val shotPath = saveDebugShot(ctx, capturedBmp, fullBox, plate, ts)
+                                    val idx = logs.indexOfFirst { it.time == ts && it.plate == plate }
+                                    if (idx != -1) {
+                                      logs[idx] = logs[idx].copy(imgPath = shotPath)
+                                      rewriteCsv()
+                                    }
+                                  }
+                                }
                               } else if (conf > logs[matchIdx].confidence && logs[matchIdx].plate != plate) {
                                 // Upgrade blurry initial read (e.g. VSO07) to sharper read (VSD07) in-place
                                 val old = logs[matchIdx]
-                                val shotPath = if (debugShots) saveDebugShot(ctx, rotated, fullBox, plate, old.time) else old.imgPath
-                                logs[matchIdx] = old.copy(plate = plate, confidence = conf, imgPath = shotPath, timestampMs = now)
+                                logs[matchIdx] = old.copy(plate = plate, confidence = conf, timestampMs = now)
                                 rewriteCsv()
+                                if (debugShots) {
+                                  val capturedBmp = rotated.copy(Bitmap.Config.ARGB_8888, false)
+                                  saveExecutor.execute {
+                                    val shotPath = saveDebugShot(ctx, capturedBmp, fullBox, plate, old.time)
+                                    val idx = logs.indexOfFirst { it.time == old.time && it.plate == plate }
+                                    if (idx != -1) {
+                                      logs[idx] = logs[idx].copy(imgPath = shotPath)
+                                      rewriteCsv()
+                                    }
+                                  }
+                                }
                               }
                             }
                           }
@@ -447,7 +479,7 @@ fun PlateScannerScreen(logFile: File) {
               Text(entry.plate, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             }
             if (entry.imgPath != null && File(entry.imgPath).exists()) {
-              val bmp = remember(entry.imgPath) { BitmapFactory.decodeFile(entry.imgPath) }
+              val bmp = remember(entry.imgPath) { loadSampledBitmap(entry.imgPath, 200, 104) }
               if (bmp != null) {
                 Image(
                   bitmap = bmp.asImageBitmap(),
@@ -470,7 +502,7 @@ fun PlateScannerScreen(logFile: File) {
           Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(entry.time)
             val bmp = remember(entry.imgPath) {
-              entry.imgPath?.takeIf { File(it).exists() }?.let { BitmapFactory.decodeFile(it) }
+              entry.imgPath?.takeIf { File(it).exists() }?.let { loadSampledBitmap(it, 1080, 1080) }
             }
             if (bmp != null) {
               Image(

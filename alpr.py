@@ -137,15 +137,20 @@ def _save_snapshot(frame, box, plate: str, ts: str) -> str:
 
 
 def process_frame(alpr, frame, logs: list[dict]) -> list[dict]:
+    import numpy as np
     now = time.time()
     changed = False
     for res in alpr.predict(frame):
-        if not (res.ocr and res.ocr.text and res.ocr.confidence >= 0.45):
+        if not (res.ocr and res.ocr.text):
+            continue
+        c = res.ocr.confidence
+        avg_conf = float(np.mean(c)) if isinstance(c, (list, np.ndarray)) else float(c or 0)
+        if avg_conf < 0.45:
             continue
         plate = valid_plate(res.ocr.text)
         if not plate:
             continue
-        conf = round(res.ocr.confidence * 100)
+        conf = round(avg_conf * 100)
         box = getattr(res.detection, "bounding_box", None)
         match_idx = next(
             (i for i, e in enumerate(logs) if now - e["ts_sec"] < 25.0 and (e["plate"] == plate or is_same_car(e["plate"], plate))),
