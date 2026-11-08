@@ -793,7 +793,7 @@ fun PlateScannerScreen(logFile: File) {
           }
         }
         items(dayEntries) { entry ->
-          val clockTime = entry.time.substringAfter(" ", entry.time)
+          val timeNoSec = entry.time.substringAfter(" ").take(5)
           Card(
             modifier = Modifier
               .fillMaxWidth()
@@ -808,51 +808,50 @@ fun PlateScannerScreen(logFile: File) {
             Row(
               modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp),
               horizontalArrangement = Arrangement.SpaceBetween,
               verticalAlignment = Alignment.CenterVertically
             ) {
-              Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+              Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+              ) {
                 IcelandicPlateBadge(entry.plate)
-                Row(
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.spacedBy(8.dp)
+                val pct = (entry.confidence * 100).toInt()
+                val badgeColor = if (pct >= 85) Color(0xFF00FF88) else Color(0xFFFFB300)
+                Surface(
+                  color = badgeColor.copy(alpha = 0.12f),
+                  shape = RoundedCornerShape(4.dp),
+                  border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f))
                 ) {
-                  val pct = (entry.confidence * 100).toInt()
-                  val badgeColor = if (pct >= 85) Color(0xFF00FF88) else Color(0xFFFFB300)
-                  Surface(
-                    color = badgeColor.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(4.dp),
-                    border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f))
-                  ) {
-                    Text(
-                      text = "$pct%",
-                      color = badgeColor,
-                      fontSize = 11.sp,
-                      fontWeight = FontWeight.Bold,
-                      modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp)
-                    )
-                  }
                   Text(
-                    clockTime,
-                    fontSize = 12.sp,
-                    color = Color(0xFF94A3B8)
+                    text = "$pct%",
+                    color = badgeColor,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                   )
                 }
+                Text(
+                  timeNoSec,
+                  fontSize = 13.sp,
+                  fontWeight = FontWeight.Medium,
+                  color = Color(0xFF94A3B8)
+                )
               }
               if (entry.imgPath != null && File(entry.imgPath).exists()) {
-                val bmp = remember(entry.imgPath) { loadSampledBitmap(entry.imgPath, 200, 120) }
+                val bmp = remember(entry.imgPath) { loadSampledBitmap(entry.imgPath, 160, 90) }
                 if (bmp != null) {
                   Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(6.dp),
                     border = BorderStroke(1.dp, Color(0xFF334155))
                   ) {
                     Image(
                       bitmap = bmp.asImageBitmap(),
                       contentDescription = entry.plate,
                       modifier = Modifier
-                        .height(52.dp)
-                        .width(92.dp),
+                        .height(44.dp)
+                        .width(76.dp),
                       contentScale = ContentScale.Crop
                     )
                   }
