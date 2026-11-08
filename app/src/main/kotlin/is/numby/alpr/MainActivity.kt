@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -212,7 +213,7 @@ fun IcelandicPlateBadge(plate: String, modifier: Modifier = Modifier) {
   } else plate
 
   Surface(
-    modifier = modifier,
+    modifier = modifier.width(106.dp),
     shape = RoundedCornerShape(5.dp),
     color = Color(0xFFF8FAFC),
     border = BorderStroke(1.5.dp, Color(0xFF1E293B)),
@@ -220,12 +221,12 @@ fun IcelandicPlateBadge(plate: String, modifier: Modifier = Modifier) {
   ) {
     Row(
       verticalAlignment = Alignment.CenterVertically,
-      modifier = Modifier.padding(start = 3.dp, end = 6.dp, top = 2.dp, bottom = 2.dp)
+      modifier = Modifier.padding(start = 3.dp, end = 4.dp, top = 2.dp, bottom = 2.dp)
     ) {
       Surface(
         color = Color(0xFF0051B4),
         shape = RoundedCornerShape(2.dp),
-        modifier = Modifier.padding(end = 5.dp)
+        modifier = Modifier.padding(end = 4.dp)
       ) {
         Column(
           horizontalAlignment = Alignment.CenterHorizontally,
@@ -245,7 +246,9 @@ fun IcelandicPlateBadge(plate: String, modifier: Modifier = Modifier) {
         color = Color(0xFF0F172A),
         fontWeight = FontWeight.ExtraBold,
         fontSize = 15.sp,
-        letterSpacing = 1.sp
+        letterSpacing = 1.sp,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth()
       )
     }
   }
@@ -588,7 +591,7 @@ fun PlateScannerScreen(logFile: File) {
             border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.35f))
           ) {
             Text(
-              "${logs.size} BÍLAR Í DAG",
+              "LIVE • 1080p",
               color = Color(0xFF00E5FF),
               fontSize = 11.sp,
               fontWeight = FontWeight.SemiBold,
@@ -659,26 +662,12 @@ fun PlateScannerScreen(logFile: File) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
       ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-          Text(
-            "Skannanir",
-            fontWeight = FontWeight.ExtraBold,
-            style = MaterialTheme.typography.titleMedium,
-            color = Color.White
-          )
-          Surface(
-            color = Color(0xFF00E5FF).copy(alpha = 0.15f),
-            shape = RoundedCornerShape(12.dp)
-          ) {
-            Text(
-              "${logs.size}",
-              color = Color(0xFF00E5FF),
-              fontWeight = FontWeight.Bold,
-              fontSize = 12.sp,
-              modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-            )
-          }
-        }
+        Text(
+          "Skráð atvik",
+          fontWeight = FontWeight.ExtraBold,
+          style = MaterialTheme.typography.titleMedium,
+          color = Color.White
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
           OutlinedButton(
             enabled = logs.isNotEmpty(),
@@ -788,7 +777,7 @@ fun PlateScannerScreen(logFile: File) {
               verticalAlignment = Alignment.CenterVertically
             ) {
               Text(formatDayHeader(dayStr), fontWeight = FontWeight.Bold, color = Color(0xFF00E5FF), style = MaterialTheme.typography.bodyMedium)
-              Text("${dayEntries.size} atvik", color = Color(0xFF64748B), style = MaterialTheme.typography.bodySmall)
+              Text("${dayEntries.size} bílar", color = Color(0xFF64748B), style = MaterialTheme.typography.bodySmall)
             }
           }
         }
@@ -814,7 +803,7 @@ fun PlateScannerScreen(logFile: File) {
             ) {
               Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
               ) {
                 IcelandicPlateBadge(entry.plate)
                 val pct = (entry.confidence * 100).toInt()
@@ -822,21 +811,25 @@ fun PlateScannerScreen(logFile: File) {
                 Surface(
                   color = badgeColor.copy(alpha = 0.12f),
                   shape = RoundedCornerShape(4.dp),
-                  border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f))
+                  border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f)),
+                  modifier = Modifier.width(44.dp)
                 ) {
                   Text(
                     text = "$pct%",
                     color = badgeColor,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
                   )
                 }
                 Text(
-                  timeNoSec,
+                  text = timeNoSec,
                   fontSize = 13.sp,
                   fontWeight = FontWeight.Medium,
-                  color = Color(0xFF94A3B8)
+                  color = Color(0xFF94A3B8),
+                  textAlign = TextAlign.Center,
+                  modifier = Modifier.width(42.dp)
                 )
               }
               if (entry.imgPath != null && File(entry.imgPath).exists()) {
