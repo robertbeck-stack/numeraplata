@@ -30,6 +30,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -42,12 +43,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -186,14 +190,75 @@ fun formatDayHeader(dateStr: String): String {
   }
 }
 
+val CyberDarkScheme = darkColorScheme(
+  primary = Color(0xFF00E5FF),
+  onPrimary = Color(0xFF050811),
+  secondary = Color(0xFF00FF88),
+  onSecondary = Color(0xFF050811),
+  background = Color(0xFF060913),
+  onBackground = Color(0xFFF1F5F9),
+  surface = Color(0xFF0D1322),
+  onSurface = Color(0xFFE2E8F0),
+  surfaceVariant = Color(0xFF141D30),
+  onSurfaceVariant = Color(0xFF94A3B8),
+  outline = Color(0xFF1E293B)
+)
+
+@Composable
+fun IcelandicPlateBadge(plate: String, modifier: Modifier = Modifier) {
+  val formatted = if (plate.length == 5) {
+    if (plate[2].isDigit()) "${plate.substring(0, 2)} ${plate.substring(2)}"
+    else "${plate.substring(0, 3)} ${plate.substring(3)}"
+  } else plate
+
+  Surface(
+    modifier = modifier,
+    shape = RoundedCornerShape(5.dp),
+    color = Color(0xFFF8FAFC),
+    border = BorderStroke(1.5.dp, Color(0xFF1E293B)),
+    shadowElevation = 2.dp
+  ) {
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      modifier = Modifier.padding(start = 3.dp, end = 6.dp, top = 2.dp, bottom = 2.dp)
+    ) {
+      Surface(
+        color = Color(0xFF0051B4),
+        shape = RoundedCornerShape(2.dp),
+        modifier = Modifier.padding(end = 5.dp)
+      ) {
+        Column(
+          horizontalAlignment = Alignment.CenterHorizontally,
+          modifier = Modifier.padding(horizontal = 3.dp, vertical = 2.dp)
+        ) {
+          Text(
+            text = "IS",
+            color = Color.White,
+            fontWeight = FontWeight.Black,
+            fontSize = 9.sp,
+            lineHeight = 10.sp
+          )
+        }
+      }
+      Text(
+        text = formatted,
+        color = Color(0xFF0F172A),
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 15.sp,
+        letterSpacing = 1.sp
+      )
+    }
+  }
+}
+
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
     val logFile = File(filesDir, "plates.csv")
     setContent {
-      MaterialTheme(colorScheme = darkColorScheme()) {
-        Surface(modifier = Modifier.fillMaxSize()) {
+      MaterialTheme(colorScheme = CyberDarkScheme) {
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
           PlateScannerScreen(logFile)
         }
       }
@@ -470,18 +535,116 @@ fun PlateScannerScreen(logFile: File) {
             previewView
           }
         )
+        // Cyber HUD gradient vignette at bottom of camera feed
+        Box(
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .align(Alignment.BottomCenter)
+            .background(
+              Brush.verticalGradient(
+                listOf(Color.Transparent, Color(0xFF060913))
+              )
+            )
+        )
+
+        // Top Cyber HUD Diagnostic Strip
+        Row(
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .align(Alignment.TopCenter),
+          horizontalArrangement = Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Surface(
+            color = Color(0xDD060913),
+            shape = RoundedCornerShape(20.dp),
+            border = BorderStroke(1.dp, Color(0xFF00FF88).copy(alpha = 0.5f))
+          ) {
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(6.dp),
+              modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+            ) {
+              Box(
+                modifier = Modifier
+                  .size(8.dp)
+                  .background(Color(0xFF00FF88), RoundedCornerShape(4.dp))
+              )
+              Text(
+                "YOLOv9 VIRKT",
+                color = Color(0xFF00FF88),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
+              )
+            }
+          }
+
+          Surface(
+            color = Color(0xDD060913),
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.35f))
+          ) {
+            Text(
+              "${logs.size} BÍLAR Í DAG",
+              color = Color(0xFF00E5FF),
+              fontSize = 11.sp,
+              fontWeight = FontWeight.SemiBold,
+              modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+          }
+        }
+
         if (showBoxes && detectedBoxes.isNotEmpty()) {
           Canvas(modifier = Modifier.fillMaxSize()) {
             val (fw, fh) = frameSize
             val sx = size.width / fw
             val sy = size.height / fh
             for (rect in detectedBoxes) {
+              val left = rect.left * sx
+              val top = rect.top * sy
+              val right = rect.right * sx
+              val bottom = rect.bottom * sy
+              val w = right - left
+              val h = bottom - top
+              val cornerLen = minOf(w, h) * 0.28f
+
+              // Semi-transparent glowing target fill
               drawRect(
-                color = Color.Green,
-                topLeft = Offset(rect.left * sx, rect.top * sy),
-                size = Size(rect.width() * sx, rect.height() * sy),
-                style = Stroke(width = 6f)
+                color = Color(0x2200E5FF),
+                topLeft = Offset(left, top),
+                size = Size(w, h)
               )
+
+              // Subtle bounding border
+              drawRect(
+                color = Color(0x4400E5FF),
+                topLeft = Offset(left, top),
+                size = Size(w, h),
+                style = Stroke(width = 1.5f)
+              )
+
+              // Neon Cyber Reticle Corner L-brackets
+              val bracketColor = Color(0xFF00FF88)
+              val strokeW = 6f
+
+              // Top-Left
+              drawLine(bracketColor, Offset(left, top), Offset(left + cornerLen, top), strokeWidth = strokeW)
+              drawLine(bracketColor, Offset(left, top), Offset(left, top + cornerLen), strokeWidth = strokeW)
+
+              // Top-Right
+              drawLine(bracketColor, Offset(right, top), Offset(right - cornerLen, top), strokeWidth = strokeW)
+              drawLine(bracketColor, Offset(right, top), Offset(right, top + cornerLen), strokeWidth = strokeW)
+
+              // Bottom-Left
+              drawLine(bracketColor, Offset(left, bottom), Offset(left + cornerLen, bottom), strokeWidth = strokeW)
+              drawLine(bracketColor, Offset(left, bottom), Offset(left, bottom - cornerLen), strokeWidth = strokeW)
+
+              // Bottom-Right
+              drawLine(bracketColor, Offset(right, bottom), Offset(right - cornerLen, bottom), strokeWidth = strokeW)
+              drawLine(bracketColor, Offset(right, bottom), Offset(right, bottom - cornerLen), strokeWidth = strokeW)
             }
           }
         }
@@ -490,22 +653,47 @@ fun PlateScannerScreen(logFile: File) {
       Text("Vantar leyfi fyrir myndavél", modifier = Modifier.padding(16.dp))
     }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp)) {
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
       ) {
-        Text("Atvik (${logs.size})", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          Text(
+            "Skannanir",
+            fontWeight = FontWeight.ExtraBold,
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White
+          )
+          Surface(
+            color = Color(0xFF00E5FF).copy(alpha = 0.15f),
+            shape = RoundedCornerShape(12.dp)
+          ) {
+            Text(
+              "${logs.size}",
+              color = Color(0xFF00E5FF),
+              fontWeight = FontWeight.Bold,
+              fontSize = 12.sp,
+              modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+            )
+          }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
           OutlinedButton(
             enabled = logs.isNotEmpty(),
             onClick = {
               logs.clear()
               logFile.delete()
-            }
+            },
+            colors = ButtonDefaults.outlinedButtonColors(
+              contentColor = Color(0xFFF43F5E)
+            ),
+            border = BorderStroke(1.dp, Color(0xFFF43F5E).copy(alpha = 0.5f)),
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
           ) {
-            Text("Hreinsa", maxLines = 1)
+            Text("Hreinsa", maxLines = 1, fontSize = 12.sp)
           }
           Button(
             enabled = logs.isNotEmpty(),
@@ -522,90 +710,156 @@ fun PlateScannerScreen(logFile: File) {
                 putExtra(Intent.EXTRA_TEXT, csv)
               }
               context.startActivity(Intent.createChooser(intent, "Deila atvikum"))
-            }
+            },
+            colors = ButtonDefaults.buttonColors(
+              containerColor = Color(0xFF00E5FF),
+              contentColor = Color(0xFF050811)
+            ),
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
           ) {
-            Text("Deila", maxLines = 1)
+            Text("Deila CSV", fontWeight = FontWeight.Bold, maxLines = 1, fontSize = 12.sp)
           }
         }
       }
+      Spacer(modifier = Modifier.height(4.dp))
       Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilterChip(
           selected = showBoxes,
           onClick = { showBoxes = !showBoxes },
-          label = { Text("Rammi") }
+          label = { Text("Rammi", fontSize = 12.sp) },
+          colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = Color(0xFF00E5FF).copy(alpha = 0.2f),
+            selectedLabelColor = Color(0xFF00E5FF)
+          ),
+          border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = showBoxes,
+            borderColor = if (showBoxes) Color(0xFF00E5FF) else Color(0xFF1E293B),
+            selectedBorderColor = Color(0xFF00E5FF)
+          )
         )
         FilterChip(
           selected = debugShots,
           onClick = { debugShots = !debugShots },
-          label = { Text("Skjáskot") }
+          label = { Text("Skjáskot", fontSize = 12.sp) },
+          colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = Color(0xFF00E5FF).copy(alpha = 0.2f),
+            selectedLabelColor = Color(0xFF00E5FF)
+          ),
+          border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = debugShots,
+            borderColor = if (debugShots) Color(0xFF00E5FF) else Color(0xFF1E293B),
+            selectedBorderColor = Color(0xFF00E5FF)
+          )
         )
         FilterChip(
           selected = !newestFirst,
           onClick = { newestFirst = !newestFirst },
-          label = { Text(if (newestFirst) "Nýjast efst" else "Elst efst") }
+          label = { Text(if (newestFirst) "Nýjast efst" else "Elst efst", fontSize = 12.sp) },
+          colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = Color(0xFF00E5FF).copy(alpha = 0.2f),
+            selectedLabelColor = Color(0xFF00E5FF)
+          ),
+          border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = !newestFirst,
+            borderColor = if (!newestFirst) Color(0xFF00E5FF) else Color(0xFF1E293B),
+            selectedBorderColor = Color(0xFF00E5FF)
+          )
         )
       }
     }
-    HorizontalDivider()
     val orderedLogs = if (newestFirst) logs else logs.reversed()
     val groupedByDay = orderedLogs.groupBy { it.time.substringBefore(" ") }
     LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
       groupedByDay.forEach { (dayStr, dayEntries) ->
         item(key = "day_$dayStr") {
           Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
+            color = Color(0xFF0D1322),
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, Color(0xFF1E293B)),
             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
           ) {
             Row(
-              modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
-              horizontalArrangement = Arrangement.SpaceBetween
+              modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.CenterVertically
             ) {
-              Text(formatDayHeader(dayStr), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-              Text("${dayEntries.size} atvik", style = MaterialTheme.typography.bodySmall)
+              Text(formatDayHeader(dayStr), fontWeight = FontWeight.Bold, color = Color(0xFF00E5FF), style = MaterialTheme.typography.bodyMedium)
+              Text("${dayEntries.size} atvik", color = Color(0xFF64748B), style = MaterialTheme.typography.bodySmall)
             }
           }
         }
         items(dayEntries) { entry ->
           val clockTime = entry.time.substringAfter(" ", entry.time)
-          Row(
+          Card(
             modifier = Modifier
               .fillMaxWidth()
-              .clickable { selectedEntry = entry }
-              .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+              .padding(vertical = 3.dp)
+              .clickable { selectedEntry = entry },
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+              containerColor = Color(0xFF0D1322)
+            ),
+            border = BorderStroke(1.dp, Color(0xFF1E293B))
           ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-              Text(clockTime, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-              Text(entry.plate, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-              val pct = (entry.confidence * 100).toInt()
-              val badgeColor = if (pct >= 85) Color(0xFF4CAF50) else Color(0xFFFFB300)
-              Surface(
-                color = badgeColor.copy(alpha = 0.15f),
-                shape = RoundedCornerShape(4.dp),
-                border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f))
-              ) {
-                Text(
-                  text = "$pct%",
-                  color = badgeColor,
-                  style = MaterialTheme.typography.labelSmall,
-                  fontWeight = FontWeight.SemiBold,
-                  modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                )
+            Row(
+              modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                IcelandicPlateBadge(entry.plate)
+                Row(
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                  val pct = (entry.confidence * 100).toInt()
+                  val badgeColor = if (pct >= 85) Color(0xFF00FF88) else Color(0xFFFFB300)
+                  Surface(
+                    color = badgeColor.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(4.dp),
+                    border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f))
+                  ) {
+                    Text(
+                      text = "$pct%",
+                      color = badgeColor,
+                      fontSize = 11.sp,
+                      fontWeight = FontWeight.Bold,
+                      modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp)
+                    )
+                  }
+                  Text(
+                    clockTime,
+                    fontSize = 12.sp,
+                    color = Color(0xFF94A3B8)
+                  )
+                }
               }
-            }
-            if (entry.imgPath != null && File(entry.imgPath).exists()) {
-              val bmp = remember(entry.imgPath) { loadSampledBitmap(entry.imgPath, 200, 104) }
-              if (bmp != null) {
-                Image(
-                  bitmap = bmp.asImageBitmap(),
-                  contentDescription = entry.plate,
-                  modifier = Modifier.height(52.dp).width(100.dp)
-                )
+              if (entry.imgPath != null && File(entry.imgPath).exists()) {
+                val bmp = remember(entry.imgPath) { loadSampledBitmap(entry.imgPath, 200, 120) }
+                if (bmp != null) {
+                  Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, Color(0xFF334155))
+                  ) {
+                    Image(
+                      bitmap = bmp.asImageBitmap(),
+                      contentDescription = entry.plate,
+                      modifier = Modifier
+                        .height(52.dp)
+                        .width(92.dp),
+                      contentScale = ContentScale.Crop
+                    )
+                  }
+                }
               }
             }
           }
-          HorizontalDivider()
         }
       }
     }
@@ -613,33 +867,70 @@ fun PlateScannerScreen(logFile: File) {
     selectedEntry?.let { entry ->
       AlertDialog(
         onDismissRequest = { selectedEntry = null },
-        title = { Text(entry.plate, fontWeight = FontWeight.Bold) },
+        containerColor = Color(0xFF0D1322),
+        titleContentColor = Color.White,
+        textContentColor = Color(0xFFE2E8F0),
+        title = {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            IcelandicPlateBadge(entry.plate)
+            val pct = (entry.confidence * 100).toInt()
+            val badgeColor = if (pct >= 85) Color(0xFF00FF88) else Color(0xFFFFB300)
+            Surface(
+              color = badgeColor.copy(alpha = 0.15f),
+              shape = RoundedCornerShape(4.dp),
+              border = BorderStroke(1.dp, badgeColor)
+            ) {
+              Text(
+                "$pct% Öryggi",
+                color = badgeColor,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+              )
+            }
+          }
+        },
         text = {
           Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            val pct = (entry.confidence * 100).toInt()
-            Text("${entry.time}  •  $pct% öryggi", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(entry.time, color = Color(0xFF94A3B8), fontSize = 13.sp)
             val bmp = remember(entry.imgPath) {
               entry.imgPath?.takeIf { File(it).exists() }?.let { loadSampledBitmap(it, 1080, 1080) }
             }
             if (bmp != null) {
-              Image(
-                bitmap = bmp.asImageBitmap(),
-                contentDescription = entry.plate,
-                modifier = Modifier.fillMaxWidth()
-              )
+              Surface(
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, Color(0xFF1E293B))
+              ) {
+                Image(
+                  bitmap = bmp.asImageBitmap(),
+                  contentDescription = entry.plate,
+                  modifier = Modifier.fillMaxWidth()
+                )
+              }
             } else {
-              Text("Engin mynd vistuð fyrir þessa færslu.")
+              Text("Engin mynd vistuð fyrir þessa færslu.", color = Color(0xFF64748B))
             }
           }
         },
         confirmButton = {
-          Button(onClick = { shareEntry(context, entry) }) {
-            Text("Deila")
+          Button(
+            onClick = { shareEntry(context, entry) },
+            colors = ButtonDefaults.buttonColors(
+              containerColor = Color(0xFF00E5FF),
+              contentColor = Color(0xFF050811)
+            ),
+            shape = RoundedCornerShape(6.dp)
+          ) {
+            Text("Deila", fontWeight = FontWeight.Bold)
           }
         },
         dismissButton = {
           TextButton(onClick = { selectedEntry = null }) {
-            Text("Loka")
+            Text("Loka", color = Color(0xFF94A3B8))
           }
         }
       )
