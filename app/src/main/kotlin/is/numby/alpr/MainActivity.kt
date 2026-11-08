@@ -27,12 +27,14 @@ import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -217,7 +219,12 @@ fun PlateScannerScreen(logFile: File) {
       if (logFile.exists()) {
         logFile.readLines().reversed().forEach { line ->
           val parts = line.split(",")
-          if (parts.size >= 2) add(ScanEntry(parts[0], parts[1], 1f, parts.getOrNull(2)?.takeIf { it.isNotEmpty() }, 0L))
+          if (parts.size >= 4) {
+            val conf = parts[2].removeSuffix("%").toFloatOrNull()?.let { if (it > 1f) it / 100f else it } ?: 1f
+            add(ScanEntry(parts[0], parts[1], conf, parts[3].takeIf { it.isNotEmpty() }, 0L))
+          } else if (parts.size >= 2) {
+            add(ScanEntry(parts[0], parts[1], 1f, parts.getOrNull(2)?.takeIf { it.isNotEmpty() }, 0L))
+          }
         }
       }
     }
@@ -230,7 +237,7 @@ fun PlateScannerScreen(logFile: File) {
   var frameSize by remember { mutableStateOf(1 to 1) }
 
   fun rewriteCsv() {
-    logFile.writeText(logs.reversed().joinToString("\n") { "${it.time},${it.plate},${it.imgPath ?: ""}" } + if (logs.isNotEmpty()) "\n" else "")
+    logFile.writeText(logs.reversed().joinToString("\n") { "${it.time},${it.plate},${(it.confidence * 100).toInt()}%,${it.imgPath ?: ""}" } + if (logs.isNotEmpty()) "\n" else "")
   }
 
   Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -504,9 +511,10 @@ fun PlateScannerScreen(logFile: File) {
             enabled = logs.isNotEmpty(),
             onClick = {
               val ordered = if (newestFirst) logs else logs.reversed()
-              val csv = "Dagur,Tími,Bílnúmer\n" + ordered.joinToString("\n") { entry ->
+              val csv = "Dagur,Tími,Bílnúmer,Öryggi\n" + ordered.joinToString("\n") { entry ->
                 val parts = entry.time.split(" ")
-                "${parts.getOrElse(0) { "" }},${parts.getOrElse(1) { entry.time }},${entry.plate}"
+                val confPct = "${(entry.confidence * 100).toInt()}%"
+                "${parts.getOrElse(0) { "" }},${parts.getOrElse(1) { entry.time }},${entry.plate},$confPct"
               }
               val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
@@ -567,9 +575,24 @@ fun PlateScannerScreen(logFile: File) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
           ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
               Text(clockTime, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
               Text(entry.plate, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+              val pct = (entry.confidence * 100).toInt()
+              val badgeColor = if (pct >= 85) Color(0xFF4CAF50) else Color(0xFFFFB300)
+              Surface(
+                color = badgeColor.copy(alpha = 0.15f),
+                shape = RoundedCornerShape(4.dp),
+                border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f))
+              ) {
+                Text(
+                  text = "$pct%",
+                  color = badgeColor,
+                  style = MaterialTheme.typography.labelSmall,
+                  fontWeight = FontWeight.SemiBold,
+                  modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                )
+              }
             }
             if (entry.imgPath != null && File(entry.imgPath).exists()) {
               val bmp = remember(entry.imgPath) { loadSampledBitmap(entry.imgPath, 200, 104) }
@@ -593,7 +616,8 @@ fun PlateScannerScreen(logFile: File) {
         title = { Text(entry.plate, fontWeight = FontWeight.Bold) },
         text = {
           Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(entry.time)
+            val pct = (entry.confidence * 100).toInt()
+            Text("${entry.time}  •  $pct% öryggi", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             val bmp = remember(entry.imgPath) {
               entry.imgPath?.takeIf { File(it).exists() }?.let { loadSampledBitmap(it, 1080, 1080) }
             }
