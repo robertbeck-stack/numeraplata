@@ -16,3 +16,11 @@ local.properties
 .kotlin
 *.apk
 plates.csv
+
+# Python útgáfan: gögn sem forritið býr til (númer, myndir, talningar, stillingar)
+captures/
+*.csv
+settings.json
+__pycache__/
+# Upptökur úr myndavélinni til prófana (stórar skrár)
+tests/data/

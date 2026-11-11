@@ -1,3 +1,4 @@
 fast-alpr[onnx]
+open-image-models
 opencv-python
 numpy

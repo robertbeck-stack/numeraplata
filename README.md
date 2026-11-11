@@ -20,18 +20,31 @@ pip install -r requirements.txt
 
 ### Keyrsla
 ```bash
-# 1) Beint af vefmyndavél (gluggi + vistar í plates.csv og captures/):
+# 1) Vefmyndavél með stjórnborði í vafra (http://127.0.0.1:8000):
 python alpr.py
 
-# 2) Vefviðmót (fyrir síma eða vafra á http://localhost:8000):
-python alpr.py --web
+# 2) Sama mynd í OpenCV-glugga í stað vafra:
+python alpr.py --window
 
-# 3) Beinn straumur úr síma (t.d. IP Webcam / RTSP):
+# 3) Beinn straumur úr síma (t.d. IP Webcam / RTSP) eða myndbandsskrá:
 python alpr.py http://192.168.1.50:8080/video
 
-# Keyra innbyggð próf:
+# 4) Myndavél símans í gegnum vafra (síminn sendir ramma á tölvuna):
+python alpr.py --web
+
+# Prófanir:
 python alpr.py --test
+python tests/test_logic.py
 ```
+
+### Hvað stjórnborðið gerir
+- **Númer:** les plötur og skráir í `plates.csv` með mynd í `captures/`. Myndinni er skipt í flísar svo litlar plötur finnist, og númer þarf að lesast eins þrisvar áður en það er skráð.
+- **Bílar:** kassi utan um hvern bíl með tegund, lit og stefnuör. Hreyfirakning á hverjum ramma lætur kassann fylgja bílum á ferð.
+- **Talning:** bílar sem fara yfir talningarlínuna (hvít strikalína) eru taldir eftir stefnu í `traffic.csv`. Í myrkri er talið eftir fram- og afturljósum.
+- **Fólk:** gulur kassi í lifandi mynd og fjöldi á mínútu í `people.csv`. Engar myndir af fólki eru vistaðar sjálfkrafa.
+- **Annað:** stafrænn aðdráttur, eyðing færslna og „Taka mynd“ sem vistar ramma með öllum kössum.
+
+Kóðinn er í `numby/`; `alpr.py` er inngangurinn.
 
 ---
 
